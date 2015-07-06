@@ -172,8 +172,49 @@ class PhotoViewerViewController: UIViewController, UIScrollViewDelegate, UIPopov
   
   // MARK: Download Photo
   
-  func downloadPhoto() {
-  }
+    func downloadPhoto() {
+        // 1
+        Alamofire.request(Five100px.Router.PhotoInfo(photoInfo!.id, .XLarge)).validate().responseJSON() {
+            (_, _, JSON, error) in
+
+            if error == nil {
+                let jsonDictionary = (JSON as! NSDictionary)
+                let imageURL = jsonDictionary.valueForKeyPath("photo.image_url") as! String
+
+                // 2
+                let destination: (NSURL, NSHTTPURLResponse) -> (NSURL) = {
+                    (temporaryURL, response) in
+
+                    if let directoryURL = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask)[0] as? NSURL {
+                        return directoryURL.URLByAppendingPathComponent("\(self.photoInfo!.id).\(response.suggestedFilename)")
+                    }
+                    
+                    return temporaryURL
+                }
+                
+                // 3
+                let progressIndicatorView = UIProgressView(frame: CGRect(x: 0.0, y: 80.0, width: self.view.bounds.width, height: 10.0))
+                progressIndicatorView.tintColor = UIColor.blueColor()
+                self.view.addSubview(progressIndicatorView)
+
+                // 5
+                Alamofire.download(.GET, imageURL, destination).progress {
+                    (_, totalBytesRead, totalBytesExpectedToRead) in
+
+                    dispatch_async(dispatch_get_main_queue()) {
+                        // 6
+                        progressIndicatorView.setProgress(Float(totalBytesRead) / Float(totalBytesExpectedToRead), animated: true)
+                        
+                        // 7
+                        if totalBytesRead == totalBytesExpectedToRead {
+                            progressIndicatorView.removeFromSuperview()
+                        }
+                    }
+                }
+                
+            }
+        }
+    }
 
   func showActions() {
     let actionSheet = UIActionSheet(title: nil, delegate: self, cancelButtonTitle: "Cancel", destructiveButtonTitle: nil, otherButtonTitles: "Download Photo")

@@ -160,9 +160,18 @@ class PhotoBrowserCollectionViewController: UICollectionViewController, UICollec
         }
     }
     
-  func handleRefresh() {
-    
-  }
+    func handleRefresh() {
+        refreshControl.beginRefreshing()
+
+        self.photos.removeAllObjects()
+        self.currentPage = 1
+
+        self.collectionView!.reloadData()
+
+        refreshControl.endRefreshing()
+        
+        populatePhotos()
+    }
 }
 
 class PhotoBrowserCollectionViewCell: UICollectionViewCell {

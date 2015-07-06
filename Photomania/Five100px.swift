@@ -9,6 +9,28 @@
 import UIKit
 import Alamofire
 
+@objc public protocol ResponseCollectionSerializable {
+    static func collection(#response: NSHTTPURLResponse, representation: AnyObject) -> [Self]
+}
+
+extension Alamofire.Request {
+    public func responseCollection<T: ResponseCollectionSerializable>(completionHandler: (NSURLRequest, NSHTTPURLResponse?, [T]?, NSError?) -> Void) -> Self {
+        let serializer: Serializer = { (request, response, data) in
+            let JSONSerializer = Request.JSONResponseSerializer(options: .AllowFragments)
+            let (JSON: AnyObject?, serializationError) = JSONSerializer(request, response, data)
+            if response != nil && JSON != nil {
+                return (T.collection(response: response!, representation: JSON!), nil)
+            } else {
+                return (nil, serializationError)
+            }
+        }
+
+        return response(serializer: serializer, completionHandler: { (request, response, object, error) in
+            completionHandler(request, response, object as? [T], error)
+        })
+    }
+}
+
 @objc public protocol ResponseObjectSerializable {
     init(response: NSHTTPURLResponse, representation: AnyObject)
 }
@@ -139,14 +161,24 @@ class PhotoInfo: NSObject, ResponseObjectSerializable {
   }
 }
 
-class Comment {
-  let userFullname: String
-  let userPictureURL: String
-  let commentBody: String
-  
-  init(JSON: AnyObject) {
-    userFullname = JSON.valueForKeyPath("user.fullname") as! String
-    userPictureURL = JSON.valueForKeyPath("user.userpic_url") as! String
-    commentBody = JSON.valueForKeyPath("body") as! String
-  }
+final class Comment: ResponseCollectionSerializable {
+    @objc static func collection(#response: NSHTTPURLResponse, representation: AnyObject) -> [Comment] {
+        var comments = [Comment]()
+
+        for comment in representation.valueForKeyPath("comments") as! [NSDictionary] {
+            comments.append(Comment(JSON: comment))
+        }
+
+        return comments
+    }
+
+    let userFullname: String
+    let userPictureURL: String
+    let commentBody: String
+
+    init(JSON: AnyObject) {
+        userFullname = JSON.valueForKeyPath("user.fullname") as! String
+        userPictureURL = JSON.valueForKeyPath("user.userpic_url") as! String
+        commentBody = JSON.valueForKeyPath("body") as! String
+    }
 }
