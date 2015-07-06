@@ -73,7 +73,8 @@ class PhotoBrowserCollectionViewController: UICollectionViewController, UICollec
         }
     }
     
-    return cell  }
+    return cell
+  }
   
   override func collectionView(collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionReusableView {
     return collectionView.dequeueReusableSupplementaryViewOfKind(kind, withReuseIdentifier: PhotoBrowserFooterViewIdentifier, forIndexPath: indexPath) as! UICollectionReusableView
